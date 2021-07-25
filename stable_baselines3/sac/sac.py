@@ -190,6 +190,7 @@ class SAC(OffPolicyAlgorithm):
 
         ent_coef_losses, ent_coefs = [], []
         actor_losses, critic_losses = [], []
+        l1_reg_losses = []
 
         for gradient_step in range(gradient_steps):
             # Sample replay buffer
@@ -254,7 +255,21 @@ class SAC(OffPolicyAlgorithm):
             min_qf_pi, _ = th.min(q_values_pi, dim=1, keepdim=True)
             actor_loss = (ent_coef * log_prob - min_qf_pi).mean()
             actor_losses.append(actor_loss.item())
-
+            
+            l1_reg_loss = 0
+            if hasattr(self.actor, 'ddt'):
+                if hasattr(self.actor.ddt, 'lin_models'):
+                    if self.actor.ddt_kwargs['l1_reg_bias']:
+                        for name, p in self.actor.ddt.lin_models.named_parameters():
+                            l1_reg_loss += th.sum(abs(p))
+                    else:
+                        for name, p in self.actor.ddt.lin_models.named_parameters():
+                            if not 'bias' in name:
+                                l1_reg_loss += torch.sum(abs(p))                            
+            l1_reg_loss *= self.actor.ddt_kwargs['l1_reg_coeff']
+            l1_reg_losses.append(l1_reg_loss.item())
+            actor_loss += l1_reg_loss
+    
             # Optimize the actor
             self.actor.optimizer.zero_grad()
             actor_loss.backward()
@@ -272,6 +287,8 @@ class SAC(OffPolicyAlgorithm):
         self.logger.record("train/critic_loss", np.mean(critic_losses))
         if len(ent_coef_losses) > 0:
             self.logger.record("train/ent_coef_loss", np.mean(ent_coef_losses))
+        if len(l1_reg_losses) > 0:
+            self.logger.record("train/l1_reg_loss", np.mean(l1_reg_losses))
 
     def learn(
         self,
