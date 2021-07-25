@@ -256,9 +256,9 @@ class SAC(OffPolicyAlgorithm):
             actor_loss = (ent_coef * log_prob - min_qf_pi).mean()
             actor_losses.append(actor_loss.item())
             
-            l1_reg_loss = 0
             if hasattr(self.actor, 'ddt'):
                 if hasattr(self.actor.ddt, 'lin_models'):
+                    l1_reg_loss = 0
                     if self.actor.ddt_kwargs['l1_reg_bias']:
                         for name, p in self.actor.ddt.lin_models.named_parameters():
                             l1_reg_loss += th.sum(abs(p))
@@ -266,9 +266,9 @@ class SAC(OffPolicyAlgorithm):
                         for name, p in self.actor.ddt.lin_models.named_parameters():
                             if not 'bias' in name:
                                 l1_reg_loss += torch.sum(abs(p))                            
-            l1_reg_loss *= self.actor.ddt_kwargs['l1_reg_coeff']
-            l1_reg_losses.append(l1_reg_loss.item())
-            actor_loss += l1_reg_loss
+                    l1_reg_loss *= self.actor.ddt_kwargs['l1_reg_coeff']
+                    l1_reg_losses.append(l1_reg_loss.item())
+                    actor_loss += l1_reg_loss
     
             # Optimize the actor
             self.actor.optimizer.zero_grad()
