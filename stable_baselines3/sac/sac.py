@@ -265,7 +265,7 @@ class SAC(OffPolicyAlgorithm):
                     else:
                         for name, p in self.actor.ddt.lin_models.named_parameters():
                             if not 'bias' in name:
-                                l1_reg_loss += torch.sum(abs(p))                            
+                                l1_reg_loss += th.sum(abs(p))                            
                     l1_reg_loss *= self.actor.ddt_kwargs['l1_reg_coeff']
                     l1_reg_losses.append(l1_reg_loss.item())
                     actor_loss += l1_reg_loss
