@@ -258,15 +258,16 @@ class SAC(OffPolicyAlgorithm):
             
             if hasattr(self.actor, 'ddt'):
                 if hasattr(self.actor.ddt, 'lin_models'):
+                    attn = self.actor.ddt.leaf_attn.repeat_interleave(2)
                     l1_reg_loss = 0
                     if self.actor.ddt_kwargs['l1_reg_bias']:
-                        for name, p in self.actor.ddt.lin_models.named_parameters():
-                            l1_reg_loss += th.sum(abs(p))
+                        for i, (name, p) in enumerate(self.actor.ddt.lin_models.named_parameters()):
+                            l1_reg_loss += th.sum(abs(p)) * attn[i]
                     else:
-                        for name, p in self.actor.ddt.lin_models.named_parameters():
+                        for i, (name, p) in enumerate(self.actor.ddt.lin_models.named_parameters()):
                             if not 'bias' in name:
-                                l1_reg_loss += th.sum(abs(p))                            
-                    l1_reg_loss *= self.actor.ddt_kwargs['l1_reg_coeff']
+                                l1_reg_loss += th.sum(abs(p)) * attn[i]
+                    l1_reg_loss *= self.actor.ddt_kwargs['l1_reg_coeff'] * self.actor.ddt.leaf_attn.size(0)
                     l1_reg_losses.append(l1_reg_loss.item())
                     actor_loss += l1_reg_loss
     
