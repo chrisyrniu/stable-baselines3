@@ -300,7 +300,9 @@ class SACPolicy(BasePolicy):
         self.actor = self.make_actor()
         if hasattr(self.actor, 'ddt'):
             self.actor.optimizer = self.optimizer_class(self.actor.parameters(), lr=self.actor.ddt_kwargs['ddt_lr'], **self.optimizer_kwargs)
-
+        else:
+            self.actor.optimizer = self.optimizer_class(self.actor.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)
+            
         if self.share_features_extractor:
             self.critic = self.make_critic(features_extractor=self.actor.features_extractor)
             # Do not optimize the shared features extractor with the critic loss
